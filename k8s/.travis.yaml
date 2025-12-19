@@ -19,6 +19,20 @@ env:
     - SHA=$(git rev-parse HEAD)
 
 before_install:
+  - sudo apt-get update -y
+  - sudo apt-get install -y python3.10 python3.10-venv python3.10-distutils || true
+  - export CLOUDSDK_PYTHON="$(command -v python3.10 || command -v python3.9)"
+  - $CLOUDSDK_PYTHON --version
+  - echo "CLOUDSDK_PYTHON=$CLOUDSDK_PYTHON"
+
+  - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
+
+  - curl -sSL https://sdk.cloud.google.com | bash > /dev/null
+  - source "$HOME/google-cloud-sdk/path.bash.inc"
+  - gcloud --version
+
+
+before_install:
   - python3.10 --version
   - echo "Using CLOUDSDK_PYTHON=$CLOUDSDK_PYTHON"
 
