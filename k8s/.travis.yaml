@@ -2,7 +2,7 @@ dist: focal
 
 addons:
   apt:
-  update: true
+    update: true
     packages:
       - python3.10
       - python3.10-venv
@@ -15,32 +15,37 @@ services:
 env:
   global:
     - CLOUDSDK_PYTHON=python3.10
-    - SHA=$(git rev-parse HEAD)
     - CLOUDSDK_CORE_DISABLE_PROMPTS=1
+    - SHA=$(git rev-parse HEAD)
 
 before_install:
   - python3.10 --version
   - echo "Using CLOUDSDK_PYTHON=$CLOUDSDK_PYTHON"
-  - curl -sSL https://sdk.cloud.google.com | bash > /dev/null;
-  - source $HOME/google-cloud-sdk/path.bash.inc
+
+  # Decrypt service account
+  - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
+
+  # Install gcloud once
+  - curl -sSL https://sdk.cloud.google.com | bash > /dev/null
+  - source "$HOME/google-cloud-sdk/path.bash.inc"
   - gcloud --version
 
-  - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
-  - curl https://sdk.cloud.google.com | bash > /dev/null;
-  - source $HOME/google-cloud-sdk/path.bash.inc
-  - gcloud components update kubectl
+  # Auth + kubectl
+  - gcloud components install kubectl --quiet
   - gcloud auth activate-service-account --key-file service-account.json
   - gcloud config set project multi-k8s-481601
-  - gcloud config set compute/zone us-central1
+  - gcloud config set compute/zone us-central1-a
   - gcloud container clusters get-credentials multi-k8s
-  - echo "$DOCKER_PASSWORD" | docker login -u "DOCKER_USERNAME" --password-stdin
-  - docker build -t ruyao2k/reach-test -f ./client/DOCKERfile.dev ./client
+
+  # Docker login + build test image
+  - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
+  - docker build -t ruyao2k/react-test -f ./client/Dockerfile.dev ./client
 
 script:
-  - docker run -e CI=true ruyao2k/reach-test npm test -- --coverage
+  - docker run -e CI=true ruyao2k/react-test npm test -- --coverage
 
 deploy:
   provider: script
   script: bash ./deploy.sh
-  on: 
+  on:
     branch: master
