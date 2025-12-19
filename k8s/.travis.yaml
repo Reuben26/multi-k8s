@@ -1,40 +1,22 @@
 dist: focal
 
-addons:
-  apt:
-    update: true
-    packages:
-      - python3.10
-      - python3.10-venv
-      - python3.10-distutils
-
 sudo: required
 services:
   - docker
 
 env:
   global:
-    - CLOUDSDK_PYTHON=python3.10
-    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
     - SHA=$(git rev-parse HEAD)
+    - CLOUDSDK_CORE_DISABLE_PROMPTS=1
 
 before_install:
+  # Install supported Python for gcloud (Ubuntu 20.04)
   - sudo apt-get update -y
-  - sudo apt-get install -y python3.10 python3.10-venv python3.10-distutils || true
-  - export CLOUDSDK_PYTHON="$(command -v python3.10 || command -v python3.9)"
-  - $CLOUDSDK_PYTHON --version
+  - sudo apt-get install -y python3.9 python3-venv python3-distutils
+  - export CLOUDSDK_PYTHON="$(command -v python3.9)"
   - echo "CLOUDSDK_PYTHON=$CLOUDSDK_PYTHON"
+  - python3.9 --version
 
-  - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
-
-  - curl -sSL https://sdk.cloud.google.com | bash > /dev/null
-  - source "$HOME/google-cloud-sdk/path.bash.inc"
-  - gcloud --version
-
-
-before_install:
-  - python3.10 --version
-  - echo "Using CLOUDSDK_PYTHON=$CLOUDSDK_PYTHON"
 
   # Decrypt service account
   - openssl aes-256-cbc -K $encrypted_9f3b5599b056_key -iv $encrypted_9f3b5599b056_iv -in service-account.json.enc -out service-account.json -d
@@ -44,14 +26,14 @@ before_install:
   - source "$HOME/google-cloud-sdk/path.bash.inc"
   - gcloud --version
 
-  # Auth + kubectl
+  # kubectl + auth + cluster creds
   - gcloud components install kubectl --quiet
   - gcloud auth activate-service-account --key-file service-account.json
   - gcloud config set project multi-k8s-481601
   - gcloud config set compute/zone us-central1-a
   - gcloud container clusters get-credentials multi-k8s
 
-  # Docker login + build test image
+  # Docker login + build
   - echo "$DOCKER_PASSWORD" | docker login -u "$DOCKER_USERNAME" --password-stdin
   - docker build -t ruyao2k/react-test -f ./client/Dockerfile.dev ./client
 
