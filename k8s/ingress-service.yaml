@@ -13,7 +13,7 @@ spec:
     - hosts:
         - yaya626.com
         - www.yaya626.com
-      secretName: k8s-multi-com
+      secretName: k8s-multi-com-tls
   rules:
     - host: yaya626.com
       http:
